@@ -17,6 +17,10 @@ const server = http.createServer((req, res) => {
         target: 'https://www.youtube.com/',
         changeOrigin: true,
         secure: false // ⚠️ هذا يتجاوز التحقق من SSL certificate
+    }, (err) => {
+
+        res.statusCode = 500;
+        res.end('Proxy error: ' + err.message);
     });
 });
 
