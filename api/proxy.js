@@ -11,7 +11,7 @@ export default function handler(req, res) {
 
     // إعدادات البروكسي
     proxy.web(req, res, {
-        target: 'https://jsonplaceholder.typicode.com', // غيرها لأي موقع تريده
+        target: 'https://www.youtube.com/', // غيرها لأي موقع تريده
         changeOrigin: true,
         secure: false,
     }, (err) => {
