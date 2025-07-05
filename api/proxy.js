@@ -8,6 +8,8 @@ export default function handler(req, res) {
         res.status(405).json({ error: 'Method Not Allowed' });
         return;
     }
+    // تعديل المسار قبل التوجيه
+    req.url = req.url.replace('/api/proxy', '') || '/';
 
     // إعدادات البروكسي
     proxy.web(req, res, {
