@@ -1,31 +1,64 @@
-import httpProxy from 'http-proxy';
-
-const proxy = httpProxy.createProxyServer();
+// api/proxy.js
+import httpProxy from 'http-proxy-middleware';
 
 export default function handler(req, res) {
-    // فقط GET و HEAD للطلبات البسيطة (أو زود حسب الحاجة)
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-        res.status(405).json({ error: 'Method Not Allowed' });
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
         return;
     }
-    // تعديل المسار قبل التوجيه
-    req.url = req.url.replace('/api/proxy', '') || '/';
 
-    // إعدادات البروكسي
-    proxy.web(req, res, {
-        target: 'https://www.youtube.com/', // غيرها لأي موقع تريده
+    // Get target URL from query parameter
+    const targetUrl = req.query.url;
+
+    if (!targetUrl) {
+        return res.status(400).json({
+            error: 'Missing target URL. Use: /api/proxy?url=https://example.com'
+        });
+    }
+
+    try {
+        // Validate URL
+        new URL(targetUrl);
+    } catch (error) {
+        return res.status(400).json({
+            error: 'Invalid URL format'
+        });
+    }
+
+    // Create proxy middleware
+    const proxy = httpProxy.createProxyMiddleware({
+        target: targetUrl,
         changeOrigin: true,
-        secure: false,
-    }, (err) => {
-        res.statusCode = 500;
-        res.end('Proxy error: ' + err.message);
+        secure: true,
+        followRedirects: true,
+        timeout: 10000,
+        proxyTimeout: 10000,
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        onError: (err, req, res) => {
+            console.error('Proxy Error:', err.message);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: 'Proxy request failed: ' + err.message
+                });
+            }
+        }
     });
+
+    // Execute proxy
+    proxy(req, res);
 }
 
-// إعدادات Vercel لـ API Route
 export const config = {
     api: {
         bodyParser: false,
-        externalResolver: true
-    }
+        externalResolver: true,
+    },
 };
